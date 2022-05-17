@@ -16,6 +16,7 @@ const statusCodes = {
   NOT_A_SLIDE: 4,
   CANT_READ_SLIDE_DECK: 5,
   CANT_WRITE_SLIDE_DECK: 6,
+  END_OF_PRESENTATION: 7,
 };
 
 /**
@@ -106,14 +107,42 @@ const nextSlide = async () => {
   if (!currentBranch.startsWith("slide-")) {
     raiseError(statusCodes.NOT_A_SLIDE);
   }
-  const index = slideDeck.slides.findIndex((slide) => {
-    slide.name === branchName;
-  });
-  console.log(index);
+  const slideName = currentBranch.slice("slide-".length);
+  const index = slideDeck.slides.findIndex((slide) => slide.name === slideName);
+  const nextSlide = slideDeck.slides[index + 1];
+  if (!nextSlide) {
+    raiseError(statusCodes.END_OF_PRESENTATION);
+  }
+  await openSlide(nextSlide);
+};
+
+const previousSlide = async () => {
+  const [slideDeck, currentBranch] = await Promise.all([
+    parseDeck(),
+    branchName(),
+  ]);
+  if (!currentBranch.startsWith("slide-")) {
+    raiseError(statusCodes.NOT_A_SLIDE);
+  }
+  const slideName = currentBranch.slice("slide-".length);
+  const index = slideDeck.slides.findIndex((slide) => slide.name === slideName);
+  const previousSlide = slideDeck.slides[index - 1];
+  if (!previousSlide) {
+    raiseError(statusCodes.END_OF_PRESENTATION);
+  }
+  await openSlide(previousSlide);
+};
+
+const firstSlide = async () => {
+  const slideDeck = parseDeck();
+  const firstSlide = slideDeck.slides[0];
+  if (!firstSlide) {
+    raiseError(statusCodes.END_OF_PRESENTATION);
+  }
+  await openSlide(firstSlide);
 };
 
 /**
- *
  * @param {string} commit
  */
 const updateSlide = async (commit) => {
@@ -138,5 +167,7 @@ module.exports = {
   statusCodes,
   addSlide,
   nextSlide,
+  previousSlide,
   updateSlide,
+  firstSlide,
 };

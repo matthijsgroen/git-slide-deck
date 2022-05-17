@@ -7,6 +7,8 @@ const {
   addSlide,
   nextSlide,
   updateSlide,
+  previousSlide,
+  firstSlide,
 } = require("./slide-deck");
 const { currentCommit } = require("./git-commands");
 
@@ -66,6 +68,28 @@ program
   .action(async function () {
     try {
       await nextSlide();
+    } catch (e) {
+      handleError(e);
+    }
+  });
+
+program
+  .command("previous")
+  .description("stashes changes and goes to the previous slide")
+  .action(async function () {
+    try {
+      await previousSlide();
+    } catch (e) {
+      handleError(e);
+    }
+  });
+
+program
+  .command("first")
+  .description("stashes changes and goes to the first slide")
+  .action(async function () {
+    try {
+      await firstSlide();
     } catch (e) {
       handleError(e);
     }
