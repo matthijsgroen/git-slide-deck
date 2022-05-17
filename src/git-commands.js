@@ -8,6 +8,11 @@ const currentCommit = async () => {
   return status.stdout.trim();
 };
 
+const branchName = async () => {
+  const status = await exec("git rev-parse --abbrev-ref HEAD");
+  return status.stdout.trim();
+};
+
 const createBranch = async (name, commit) => {
   exec(`git branch -f ${name} ${commit}`);
   exec(`git switch ${name}`);
@@ -17,4 +22,5 @@ module.exports = {
   gitHead,
   currentCommit,
   createBranch,
+  branchName,
 };
