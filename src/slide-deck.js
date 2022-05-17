@@ -1,5 +1,5 @@
 const util = require("util");
-const { gitHead } = require("./git-commands");
+const { gitHead, createBranch } = require("./git-commands");
 const readFile = util.promisify(require("fs").readFile);
 const writeFile = util.promisify(require("fs").writeFile);
 const stat = util.promisify(require("fs").stat);
@@ -43,11 +43,14 @@ const parseDeck = async () => {
   return JSON.parse(contents);
 };
 
+const openSlide = (slide) => createBranch(`slide-${slide.name}`, slide.commit);
+
 const addSlide = async (name, commit) => {
   try {
     const slideDeck = await parseDeck();
     slideDeck.slides.push({ name, commit });
     await writeDeck(slideDeck);
+    await openSlide({ name, commit });
     return statusCodes.SUCCESS;
   } catch (e) {
     return statusCodes.UNKNOWN_ERROR;

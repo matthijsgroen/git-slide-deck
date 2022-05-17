@@ -8,7 +8,13 @@ const currentCommit = async () => {
   return status.stdout.trim();
 };
 
+const createBranch = async (name, commit) => {
+  const status = await exec(`git checkout -b ${name} ${commit}`);
+  return status.stdout.trim();
+};
+
 module.exports = {
   gitHead,
   currentCommit,
+  createBranch,
 };
