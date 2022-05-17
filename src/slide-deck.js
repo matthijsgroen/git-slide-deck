@@ -46,10 +46,16 @@ const initRepo = async () => {
   } catch (e) {
     raiseError(statusCodes.NOT_A_GIT_REPO);
   }
-  const status = await stat(DEFAULT_DECK_PATH);
-  if (status.isFile()) {
+  let exists = false;
+  try {
+    const status = await stat(DEFAULT_DECK_PATH);
+    exists = true;
+  } catch (e) {}
+
+  if (exists) {
     raiseError(statusCodes.REPO_ALREADY_INITIALIZED);
   }
+
   writeDeck(newFile());
 };
 
