@@ -1,7 +1,8 @@
 const program = require("commander");
 
 const { version } = require("../package.json");
-const { initRepo, statusCodes } = require("./slide-deck");
+const { initRepo, statusCodes, addSlide } = require("./slide-deck");
+const { currentCommit } = require("./git-commands");
 
 program
   .version(version)
@@ -18,6 +19,15 @@ program
       console.log("Repos already has a slide-deck file.");
       process.exit(1);
     }
+  });
+
+program
+  .command("add <name>")
+  .description("adds current commit as new slide")
+  .action(async function (name) {
+    const commit = await currentCommit();
+    const status = await addSlide(name, commit);
+    process.exit(1);
   });
 
 async function run(args) {
