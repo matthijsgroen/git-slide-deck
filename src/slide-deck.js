@@ -1,5 +1,5 @@
 const util = require("util");
-const { gitHead, createBranch } = require("./git-commands");
+const { gitHead, createBranch, branchName } = require("./git-commands");
 const readFile = util.promisify(require("fs").readFile);
 const writeFile = util.promisify(require("fs").writeFile);
 const stat = util.promisify(require("fs").stat);
@@ -14,6 +14,8 @@ const statusCodes = {
   REPO_ALREADY_INITIALIZED: 2,
   NOT_A_GIT_REPO: 3,
   NOT_A_SLIDE: 4,
+  CANT_READ_SLIDE_DECK: 5,
+  CANT_WRITE_SLIDE_DECK: 6,
 };
 
 /**
@@ -55,15 +57,24 @@ const initRepo = async () => {
  * @param {Deck} deck
  * @returns
  */
-const writeDeck = async (deck) =>
-  writeFile(DEFAULT_DECK_PATH, JSON.stringify(deck, undefined, 2));
+const writeDeck = async (deck) => {
+  try {
+    await writeFile(DEFAULT_DECK_PATH, JSON.stringify(deck, undefined, 2));
+  } catch (e) {
+    raiseError(statusCodes.CANT_WRITE_SLIDE_DECK);
+  }
+};
 
 /**
- * @returns {Deck}
+ * @returns {Promise<Deck>}
  */
 const parseDeck = async () => {
-  const contents = await readFile(DEFAULT_DECK_PATH);
-  return JSON.parse(contents);
+  try {
+    const contents = await readFile(DEFAULT_DECK_PATH);
+    return JSON.parse(contents);
+  } catch (e) {
+    raiseError(statusCodes.CANT_READ_SLIDE_DECK);
+  }
 };
 
 /**
@@ -76,10 +87,10 @@ const openSlide = (slide) => createBranch(`slide-${slide.name}`, slide.commit);
  * @param {string} commit
  */
 const addSlide = async (name, commit) => {
+  const slideDeck = await parseDeck();
+  slideDeck.slides.push({ name, commit });
+  await writeDeck(slideDeck);
   try {
-    const slideDeck = await parseDeck();
-    slideDeck.slides.push({ name, commit });
-    await writeDeck(slideDeck);
     await openSlide({ name, commit });
     return statusCodes.SUCCESS;
   } catch (e) {
@@ -87,8 +98,42 @@ const addSlide = async (name, commit) => {
   }
 };
 
+const nextSlide = async () => {
+  const [slideDeck, currentBranch] = await Promise.all([
+    parseDeck(),
+    branchName(),
+  ]);
+  if (!currentBranch.startsWith("slide-")) {
+    raiseError(statusCodes.NOT_A_SLIDE);
+  }
+  const index = slideDeck.slides.findIndex((slide) => {
+    slide.name === branchName;
+  });
+  console.log(index);
+};
+
+/**
+ *
+ * @param {string} commit
+ */
+const updateSlide = async (commit) => {
+  const [slideDeck, currentBranch] = await Promise.all([
+    parseDeck(),
+    branchName(),
+  ]);
+  if (!currentBranch.startsWith("slide-")) {
+    raiseError(statusCodes.NOT_A_SLIDE);
+  }
+  const index = slideDeck.slides.findIndex((slide) => {
+    slide.name === branchName;
+  });
+  console.log(index);
+};
+
 module.exports = {
   initRepo,
   statusCodes,
   addSlide,
+  nextSlide,
+  updateSlide,
 };

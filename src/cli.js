@@ -1,8 +1,14 @@
 const program = require("commander");
 
 const { version } = require("../package.json");
-const { initRepo, statusCodes, addSlide } = require("./slide-deck");
-const { currentCommit, branchName } = require("./git-commands");
+const {
+  initRepo,
+  statusCodes,
+  addSlide,
+  nextSlide,
+  updateSlide,
+} = require("./slide-deck");
+const { currentCommit } = require("./git-commands");
 
 program
   .version(version)
@@ -43,12 +49,26 @@ program
   });
 
 program
+  .command("update")
+  .description("updates current slide to current commit")
+  .action(async function () {
+    try {
+      const commit = await currentCommit();
+      await updateSlide(commit);
+    } catch (e) {
+      handleError(e);
+    }
+  });
+
+program
   .command("next")
   .description("stashes changes and goes to the next slide")
   .action(async function () {
-    const name = await branchName();
-    console.log(name);
-    process.exit(1);
+    try {
+      await nextSlide();
+    } catch (e) {
+      handleError(e);
+    }
   });
 
 async function run(args) {
