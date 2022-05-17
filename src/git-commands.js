@@ -9,8 +9,8 @@ const currentCommit = async () => {
 };
 
 const createBranch = async (name, commit) => {
-  const status = await exec(`git checkout -b ${name} ${commit}`);
-  return status.stdout.trim();
+  exec(`git branch -f ${name} ${commit}`);
+  exec(`git switch ${name}`);
 };
 
 module.exports = {

@@ -36,7 +36,7 @@ const initRepo = async () => {
 };
 
 const writeDeck = async (deck) =>
-  writeFile(DEFAULT_DECK_PATH, JSON.stringify(deck));
+  writeFile(DEFAULT_DECK_PATH, JSON.stringify(deck, undefined, 2));
 
 const parseDeck = async () => {
   const contents = await readFile(DEFAULT_DECK_PATH);
