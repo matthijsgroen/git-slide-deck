@@ -1,0 +1,11 @@
+{
+  "name": "git-slide-deck",
+  "version": "1.0.0",
+  "description": "Use your codebase as slide-deck",
+  "main": "index.js",
+  "author": "Matthijs Groen <matthijs.groen@gmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "commander": "^9.2.0"
+  }
+}
