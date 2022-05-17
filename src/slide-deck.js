@@ -124,10 +124,13 @@ const updateSlide = async (commit) => {
   if (!currentBranch.startsWith("slide-")) {
     raiseError(statusCodes.NOT_A_SLIDE);
   }
-  const index = slideDeck.slides.findIndex((slide) => {
-    slide.name === branchName;
-  });
-  console.log(index);
+  const slideName = currentBranch.slice("slide-".length);
+  const index = slideDeck.slides.findIndex((slide) => slide.name === slideName);
+  if (index === -1) {
+    raiseError(statusCodes.NOT_A_SLIDE);
+  }
+  slideDeck.slides[index].commit = commit;
+  await writeDeck(slideDeck);
 };
 
 module.exports = {
