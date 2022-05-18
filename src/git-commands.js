@@ -21,6 +21,9 @@ const createBranch = async (name, commit) => {
   await exec(`git branch -f ${name} ${commit}`);
   await switchBranch(name);
 };
+const stash = async () => {
+  await exec(`git stash`);
+};
 
 module.exports = {
   gitHead,
@@ -28,4 +31,5 @@ module.exports = {
   createBranch,
   branchName,
   switchBranch,
+  stash,
 };
