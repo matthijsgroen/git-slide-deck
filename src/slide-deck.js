@@ -140,7 +140,7 @@ const previousSlide = async () => {
 };
 
 const firstSlide = async () => {
-  const slideDeck = parseDeck();
+  const slideDeck = await parseDeck();
   const firstSlide = slideDeck.slides[0];
   if (!firstSlide) {
     raiseError(statusCodes.END_OF_PRESENTATION);
