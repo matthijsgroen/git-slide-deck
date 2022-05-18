@@ -325,11 +325,15 @@ const client = async (presentMode = true) => {
     if (key === "a") {
       const commit = await currentCommit();
       const title = await titleOfCommit(commit);
-      const slideName = await getInput("New slide name: ");
-      const newIndex = slide ? index + 1 : index;
-      slideDeck.slides.splice(newIndex, 0, { name: slideName, commit });
-      index = newIndex;
-      message = `Slide added. -- '${title}'`;
+      const slideName = await getInput("New slide name (empty to cancel): ");
+      if (slideName === "") {
+        message = `Slide adding canceled.`;
+      } else {
+        const newIndex = slide ? index + 1 : index;
+        slideDeck.slides.splice(newIndex, 0, { name: slideName, commit });
+        index = newIndex;
+        message = `Slide added. -- '${title}'`;
+      }
     }
     if (key === "s") {
       await stash();
