@@ -9,7 +9,7 @@ const {
   updateSlide,
   previousSlide,
   firstSlide,
-  present,
+  client,
 } = require("./slide-deck");
 const { currentCommit } = require("./git-commands");
 
