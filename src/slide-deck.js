@@ -14,6 +14,7 @@ const stat = util.promisify(require("fs").stat);
 /**
  * @typedef {{ name: string; commit: string; }} Slide
  * @typedef {{ version: string; slides: Slide[]; }} Deck
+ * @typedef {{ key: string; execute: () => Promise<void>; enabled: boolean; actionLine: string; }} Action
  */
 
 const statusCodes = {
@@ -243,9 +244,6 @@ const client = async (presentMode = true) => {
     }
   });
 
-  const PRESENTER_KEYS = ["q", "n", "p"];
-  const EDITOR_KEYS = PRESENTER_KEYS.concat(["u", "a", "s"]);
-
   /**
    *
    * @param {string[]} keys
@@ -274,76 +272,106 @@ const client = async (presentMode = true) => {
       await openSlide(slide);
     }
 
-    const hasNext = index < slideDeck.slides.length - 1;
-    const hasPrevious = index > 0;
     cls();
     if (message.length > 0) {
       console.log(message);
       console.log("");
     }
     message = "";
+
     if (slide) {
-      console.log(`on: ${slide.name}`);
+      console.log(`on: ${slide.name} ${index + 1}/${slideDeck.slides.length}`);
     } else {
       console.log(`no slides yet.`);
     }
     console.log("");
-    if (hasPrevious) {
-      console.log(`p) previous: ${slideDeck.slides[index - 1].name}`);
-    }
-    if (hasNext) {
-      console.log(`n) next: ${slideDeck.slides[index + 1].name}`);
-    }
-    if (!presentMode) {
-      if (slide) {
-        console.log("u) update current slide");
-      }
-      console.log("a) add slide after this one");
-      console.log("s) save & quit");
-    }
-    console.log("q) quit");
 
-    const key = await validInputKey(presentMode ? PRESENTER_KEYS : EDITOR_KEYS);
-
-    console.log("input", key);
-    if (key === "p" && hasPrevious) {
-      index--;
-    }
-    if (key === "n" && hasNext) {
-      index++;
-    }
-    if (key === "u" && slide) {
-      const commit = await currentCommit();
-      const title = await titleOfCommit(commit);
-      if (slideDeck.slides[index].commit !== commit) {
-        slideDeck.slides[index].commit = commit;
-        message = `Slide updated. -- '${title}'`;
-      } else {
-        message = `Slide is already this commit. -- '${title}'`;
+    /** @type {Action[]} */
+    const actions = [
+      {
+        key: "p",
+        actionLine: `previous: ${slideDeck.slides[index - 1].name}`,
+        execute: () => {
+          index--;
+        },
+        enabled: index > 0,
+      },
+      {
+        key: "n",
+        actionLine: `next: ${slideDeck.slides[index + 1].name}`,
+        execute: () => {
+          index++;
+        },
+        enabled: index < slideDeck.slides.length - 1,
+      },
+      {
+        key: "u",
+        actionLine: "update current slide",
+        execute: async () => {
+          const commit = await currentCommit();
+          const title = await titleOfCommit(commit);
+          if (slideDeck.slides[index].commit !== commit) {
+            slideDeck.slides[index].commit = commit;
+            message = `Slide updated. -- '${title}'`;
+          } else {
+            message = `Slide is already this commit. -- '${title}'`;
+          }
+        },
+        enabled: !presentMode && slide,
+      },
+      {
+        key: "a",
+        actionLine: "add slide after this one",
+        execute: async () => {
+          const commit = await currentCommit();
+          const title = await titleOfCommit(commit);
+          const slideName = await getInput(
+            "New slide name (empty to cancel): "
+          );
+          if (slideName === "") {
+            message = `Slide adding canceled.`;
+          } else {
+            const newIndex = slide ? index + 1 : index;
+            slideDeck.slides.splice(newIndex, 0, { name: slideName, commit });
+            index = newIndex;
+            message = `Slide added. -- '${title}'`;
+          }
+        },
+        enabled: !presentMode,
+      },
+      {
+        key: "s",
+        actionLine: "save & quit",
+        execute: async () => {
+          await stash();
+          await switchBranch(startBranch);
+          await writeDeck(slideDeck);
+          console.log("Slide deck saved.");
+          running = false;
+        },
+        enabled: !presentMode,
+      },
+      {
+        key: "q",
+        actionLine: "quit",
+        execute: async () => {
+          running = false;
+        },
+        enabled: true,
+      },
+    ];
+    /** @type {string[]} */
+    const enabledKeys = [];
+    for (const action of actions) {
+      if (action.enabled) {
+        console.log(`${action.key}) ${action.actionLine}`);
+        enabledKeys.push(action.key);
       }
     }
-    if (key === "a") {
-      const commit = await currentCommit();
-      const title = await titleOfCommit(commit);
-      const slideName = await getInput("New slide name (empty to cancel): ");
-      if (slideName === "") {
-        message = `Slide adding canceled.`;
-      } else {
-        const newIndex = slide ? index + 1 : index;
-        slideDeck.slides.splice(newIndex, 0, { name: slideName, commit });
-        index = newIndex;
-        message = `Slide added. -- '${title}'`;
-      }
-    }
-    if (key === "s") {
-      await stash();
-      await switchBranch(startBranch);
-      await writeDeck(slideDeck);
-      console.log("Slide deck saved.");
-    }
-
-    if (key === "q") {
-      running = false;
+    const key = await validInputKey(enabledKeys);
+    const action = actions.find((a) => a.key === key);
+    if (action && action.enabled) {
+      await action.execute();
     }
   } while (running);
   await stash();
