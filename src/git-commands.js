@@ -22,7 +22,7 @@ const createBranch = async (name, commit) => {
   await switchBranch(name);
 };
 const stash = async () => {
-  await exec(`git stash`);
+  await exec(`git stash -u`);
 };
 
 module.exports = {
