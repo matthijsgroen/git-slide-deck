@@ -101,7 +101,18 @@ program
   .description("plays entire deck as client, starting from the first slide")
   .action(async function () {
     try {
-      await present();
+      await client(true);
+    } catch (e) {
+      handleError(e);
+    }
+  });
+
+program
+  .command("edit")
+  .description("start editor as client, to quickly add/update slides")
+  .action(async function () {
+    try {
+      await client(false);
     } catch (e) {
       handleError(e);
     }

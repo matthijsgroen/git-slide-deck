@@ -23,3 +23,4 @@ and this project adheres to
   - go to previous slide `git-slide-deck previous`
 
 - Slide deck presentation: `git-slide-deck present`
+- Slide deck editor: `git-slide-deck edit`

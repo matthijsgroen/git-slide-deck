@@ -178,7 +178,7 @@ const stdin = process.stdin;
 
 const cls = () => process.stdout.write("\x1Bc");
 
-const present = async () => {
+const client = async (presentMode = true) => {
   const [slideDeck, currentBranch] = await Promise.all([
     parseDeck(),
     branchName(),
@@ -203,12 +203,18 @@ const present = async () => {
     }
   });
 
-  const VALID_KEYS = ["q", "n", "p"];
+  const PRESENTER_KEYS = ["q", "n", "p"];
+  const EDITOR_KEYS = PRESENTER_KEYS.concat(["u", "s"]);
 
-  const validInputKey = async () =>
+  /**
+   *
+   * @param {string[]} keys
+   * @returns {Promise<string>}
+   */
+  const validInputKey = async (keys) =>
     new Promise((resolve) => {
       const keyHandler = (key) => {
-        if (VALID_KEYS.includes(key)) {
+        if (keys.includes(key)) {
           resolve(key);
         }
         waitKey = keyHandler;
@@ -217,18 +223,27 @@ const present = async () => {
       waitKey = keyHandler;
     });
 
+  let message = "";
+
   do {
     const slide = slideDeck.slides[index];
     if (!slide) {
       raiseError(statusCodes.END_OF_PRESENTATION);
     }
 
-    await stash();
+    if (presentMode) {
+      await stash();
+    }
     await openSlide(slide);
 
     const hasNext = index < slideDeck.slides.length - 1;
     const hasPrevious = index > 0;
     cls();
+    if (message.length > 0) {
+      console.log(message);
+      console.log("");
+    }
+    message = "";
     console.log(`on: ${slide.name}`);
     console.log("");
     if (hasPrevious) {
@@ -237,9 +252,13 @@ const present = async () => {
     if (hasNext) {
       console.log(`n) next: ${slideDeck.slides[index + 1].name}`);
     }
+    if (!presentMode) {
+      console.log(`u) update current slide`);
+      console.log(`s) save & quit`);
+    }
     console.log(`q) quit`);
 
-    const key = await validInputKey(VALID_KEYS);
+    const key = await validInputKey(presentMode ? PRESENTER_KEYS : EDITOR_KEYS);
 
     console.log("input", key);
     if (key === "p" && hasPrevious) {
@@ -248,6 +267,22 @@ const present = async () => {
     if (key === "n" && hasNext) {
       index++;
     }
+    if (key === "u") {
+      const commit = await currentCommit();
+      if (slideDeck.slides[index].commit !== commit) {
+        slideDeck.slides[index].commit = commit;
+        message = "Slide updated.";
+      } else {
+        message = "Slide is already this commit.";
+      }
+    }
+    if (key === "s") {
+      await stash();
+      await switchBranch(currentBranch);
+      await writeDeck(slideDeck);
+      console.log("Slide deck saved.");
+    }
+
     if (key === "q") {
       running = false;
     }
@@ -265,5 +300,5 @@ module.exports = {
   previousSlide,
   updateSlide,
   firstSlide,
-  present,
+  client,
 };
