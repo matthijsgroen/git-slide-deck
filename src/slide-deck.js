@@ -4,6 +4,7 @@ const {
   createBranch,
   branchName,
   switchBranch,
+  stash,
 } = require("./git-commands");
 const readFile = util.promisify(require("fs").readFile);
 const writeFile = util.promisify(require("fs").writeFile);
@@ -92,7 +93,10 @@ const parseDeck = async () => {
 /**
  * @param {Slide} slide
  */
-const openSlide = (slide) => createBranch(`slide-${slide.name}`, slide.commit);
+const openSlide = async (slide) => {
+  await stash();
+  await createBranch(`slide-${slide.name}`, slide.commit);
+};
 
 /**
  * @param {string} name
@@ -250,6 +254,7 @@ const play = async () => {
       running = false;
     }
   } while (running);
+  await stash();
   await switchBranch(currentBranch);
   stdin.pause();
 };
