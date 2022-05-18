@@ -1,11 +1,11 @@
 const util = require("util");
 const {
-  gitHead,
   createBranch,
   branchName,
   switchBranch,
   stash,
   titleOfCommit,
+  isGitRepo,
 } = require("./git-commands");
 const readFile = util.promisify(require("fs").readFile);
 const writeFile = util.promisify(require("fs").writeFile);
@@ -47,18 +47,21 @@ const raiseError = (code) => {
   throw error;
 };
 
-const initRepo = async () => {
-  try {
-    await gitHead();
-  } catch (e) {
-    raiseError(statusCodes.NOT_A_GIT_REPO);
-  }
+const hasDeckFile = async () => {
   let exists = false;
   try {
-    const status = await stat(DEFAULT_DECK_PATH);
+    await stat(DEFAULT_DECK_PATH);
     exists = true;
   } catch (e) {}
+  return exists;
+};
 
+const initRepo = async () => {
+  const gitRepo = await isGitRepo();
+  if (!gitRepo) {
+    raiseError(statusCodes.NOT_A_GIT_REPO);
+  }
+  const exists = await hasDeckFile();
   if (exists) {
     raiseError(statusCodes.REPO_ALREADY_INITIALIZED);
   }
@@ -89,6 +92,21 @@ const parseDeck = async () => {
   } catch (e) {
     raiseError(statusCodes.CANT_READ_SLIDE_DECK);
   }
+};
+
+/**
+ * @returns {Promise<Deck>}
+ */
+const createOrParseDeck = async () => {
+  const gitRepo = await isGitRepo();
+  if (!gitRepo) {
+    raiseError(statusCodes.NOT_A_GIT_REPO);
+  }
+  const exists = await hasDeckFile();
+  if (exists) {
+    return await parseDeck();
+  }
+  return newFile();
 };
 
 /**
@@ -201,7 +219,7 @@ const getInput = async (prompt) =>
 
 const client = async (presentMode = true) => {
   const [slideDeck, startBranch] = await Promise.all([
-    parseDeck(),
+    presentMode ? parseDeck() : createOrParseDeck(),
     branchName(),
   ]);
   let index = 0;
@@ -249,14 +267,12 @@ const client = async (presentMode = true) => {
 
   do {
     const slide = slideDeck.slides[index];
-    if (!slide) {
-      raiseError(statusCodes.END_OF_PRESENTATION);
+    if (slide) {
+      if (presentMode) {
+        await stash();
+      }
+      await openSlide(slide);
     }
-
-    if (presentMode) {
-      await stash();
-    }
-    await openSlide(slide);
 
     const hasNext = index < slideDeck.slides.length - 1;
     const hasPrevious = index > 0;
@@ -266,7 +282,11 @@ const client = async (presentMode = true) => {
       console.log("");
     }
     message = "";
-    console.log(`on: ${slide.name}`);
+    if (slide) {
+      console.log(`on: ${slide.name}`);
+    } else {
+      console.log(`no slides yet.`);
+    }
     console.log("");
     if (hasPrevious) {
       console.log(`p) previous: ${slideDeck.slides[index - 1].name}`);
@@ -275,7 +295,9 @@ const client = async (presentMode = true) => {
       console.log(`n) next: ${slideDeck.slides[index + 1].name}`);
     }
     if (!presentMode) {
-      console.log("u) update current slide");
+      if (slide) {
+        console.log("u) update current slide");
+      }
       console.log("a) add slide after this one");
       console.log("s) save & quit");
     }
@@ -290,7 +312,7 @@ const client = async (presentMode = true) => {
     if (key === "n" && hasNext) {
       index++;
     }
-    if (key === "u") {
+    if (key === "u" && slide) {
       const commit = await currentCommit();
       const title = await titleOfCommit(commit);
       if (slideDeck.slides[index].commit !== commit) {
@@ -302,9 +324,12 @@ const client = async (presentMode = true) => {
     }
     if (key === "a") {
       const commit = await currentCommit();
+      const title = await titleOfCommit(commit);
       const slideName = await getInput("New slide name: ");
-      slideDeck.slides.splice(index + 1, 0, { name: slideName, commit });
-      index = index + 1;
+      const newIndex = slide ? index + 1 : index;
+      slideDeck.slides.splice(newIndex, 0, { name: slideName, commit });
+      index = newIndex;
+      message = `Slide added. -- '${title}'`;
     }
     if (key === "s") {
       await stash();

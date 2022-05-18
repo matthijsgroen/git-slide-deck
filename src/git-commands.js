@@ -41,6 +41,15 @@ const titleOfCommit = async (commit) => {
   return status.stdout.trim();
 };
 
+const isGitRepo = async () => {
+  try {
+    await gitHead();
+    return true;
+  } catch (e) {
+    return false;
+  }
+};
+
 module.exports = {
   gitHead,
   currentCommit,
@@ -49,4 +58,5 @@ module.exports = {
   switchBranch,
   stash,
   titleOfCommit,
+  isGitRepo,
 };
