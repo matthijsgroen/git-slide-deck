@@ -5,6 +5,7 @@ const {
   branchName,
   switchBranch,
   stash,
+  titleOfCommit,
 } = require("./git-commands");
 const readFile = util.promisify(require("fs").readFile);
 const writeFile = util.promisify(require("fs").writeFile);
@@ -178,8 +179,28 @@ const stdin = process.stdin;
 
 const cls = () => process.stdout.write("\x1Bc");
 
+/**
+ * @param {string} prompt
+ * @returns {Promise<string>}
+ */
+const getInput = async (prompt) =>
+  new Promise((resolve) => {
+    process.stdout.write(prompt);
+    stdin.setRawMode(false);
+    stdin.setEncoding("utf8");
+    const callback = function (chunk) {
+      resolve(chunk.slice(0, -1));
+
+      stdin.setRawMode(true);
+      stdin.setEncoding("utf8");
+      stdin.removeListener("data", callback);
+    };
+
+    stdin.on("data", callback);
+  });
+
 const client = async (presentMode = true) => {
-  const [slideDeck, currentBranch] = await Promise.all([
+  const [slideDeck, startBranch] = await Promise.all([
     parseDeck(),
     branchName(),
   ]);
@@ -200,11 +221,12 @@ const client = async (presentMode = true) => {
     }
     if (waitKey) {
       waitKey(key);
+      waitKey = null;
     }
   });
 
   const PRESENTER_KEYS = ["q", "n", "p"];
-  const EDITOR_KEYS = PRESENTER_KEYS.concat(["u", "s"]);
+  const EDITOR_KEYS = PRESENTER_KEYS.concat(["u", "a", "s"]);
 
   /**
    *
@@ -253,10 +275,11 @@ const client = async (presentMode = true) => {
       console.log(`n) next: ${slideDeck.slides[index + 1].name}`);
     }
     if (!presentMode) {
-      console.log(`u) update current slide`);
-      console.log(`s) save & quit`);
+      console.log("u) update current slide");
+      console.log("a) add slide after this one");
+      console.log("s) save & quit");
     }
-    console.log(`q) quit`);
+    console.log("q) quit");
 
     const key = await validInputKey(presentMode ? PRESENTER_KEYS : EDITOR_KEYS);
 
@@ -269,16 +292,23 @@ const client = async (presentMode = true) => {
     }
     if (key === "u") {
       const commit = await currentCommit();
+      const title = await titleOfCommit(commit);
       if (slideDeck.slides[index].commit !== commit) {
         slideDeck.slides[index].commit = commit;
-        message = "Slide updated.";
+        message = `Slide updated. -- '${title}'`;
       } else {
-        message = "Slide is already this commit.";
+        message = `Slide is already this commit. -- '${title}'`;
       }
+    }
+    if (key === "a") {
+      const commit = await currentCommit();
+      const slideName = await getInput("New slide name: ");
+      slideDeck.slides.splice(index + 1, 0, { name: slideName, commit });
+      index = index + 1;
     }
     if (key === "s") {
       await stash();
-      await switchBranch(currentBranch);
+      await switchBranch(startBranch);
       await writeDeck(slideDeck);
       console.log("Slide deck saved.");
     }
@@ -288,7 +318,7 @@ const client = async (presentMode = true) => {
     }
   } while (running);
   await stash();
-  await switchBranch(currentBranch);
+  await switchBranch(startBranch);
   stdin.pause();
 };
 
