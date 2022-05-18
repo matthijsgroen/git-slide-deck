@@ -170,33 +170,7 @@ const updateSlide = async (commit) => {
 
 const stdin = process.stdin;
 
-const inputKey = () =>
-  new Promise(async (resolve) => {
-    stdin.setRawMode(false);
-    stdin.setEncoding("utf8");
-    const callback = function (chunk) {
-      resolve(chunk.slice(0, -1));
-
-      stdin.setRawMode(true);
-      stdin.setEncoding("utf8");
-      stdin.removeListener("data", callback);
-    };
-
-    stdin.on("data", callback);
-  });
-
-const VALID_KEYS = ["n", "p", "q"];
-
-/**
- * @param {string[]} keys
- */
-const validInputKey = async (keys) => {
-  let key = "";
-  do {
-    key = await inputKey();
-  } while (!keys.includes(key));
-  return key;
-};
+const cls = () => process.stdout.write("\x1Bc");
 
 const play = async () => {
   const [slideDeck, currentBranch] = await Promise.all([
@@ -205,18 +179,73 @@ const play = async () => {
   ]);
   let index = 0;
   let running = true;
+
+  stdin.resume();
+  stdin.setRawMode(true);
+  stdin.setEncoding("utf8");
+
+  /** @type {null | (key: string) => void} */
+  let waitKey = null;
+
+  stdin.on("data", function (key) {
+    // ctrl-c ( end of text )
+    if (key === "\u0003" || key === "\u001b") {
+      process.exit();
+    }
+    if (waitKey) {
+      waitKey(key);
+    }
+  });
+
+  const VALID_KEYS = ["q", "n", "p"];
+
+  const validInputKey = async () =>
+    new Promise((resolve) => {
+      const keyHandler = (key) => {
+        if (VALID_KEYS.includes(key)) {
+          resolve(key);
+        }
+        waitKey = keyHandler;
+      };
+
+      waitKey = keyHandler;
+    });
+
   do {
     const slide = slideDeck.slides[index];
     if (!slide) {
       raiseError(statusCodes.END_OF_PRESENTATION);
     }
-    // await openSlide(slide);
+
+    await openSlide(slide);
+
+    const hasNext = index < slideDeck.slides.length - 1;
+    const hasPrevious = index > 0;
+    cls();
+    console.log(`on: ${slide.name}`);
+    console.log("");
+    if (hasPrevious) {
+      console.log(`p) previous: ${slideDeck.slides[index - 1].name}`);
+    }
+    if (hasNext) {
+      console.log(`n) next: ${slideDeck.slides[index + 1].name}`);
+    }
+    console.log(`q) quit`);
 
     const key = await validInputKey(VALID_KEYS);
 
-    console.log(key);
-    running = false;
+    console.log("input", key);
+    if (key === "p" && hasPrevious) {
+      index--;
+    }
+    if (key === "n" && hasNext) {
+      index++;
+    }
+    if (key === "q") {
+      running = false;
+    }
   } while (running);
+  stdin.pause();
 };
 
 module.exports = {
