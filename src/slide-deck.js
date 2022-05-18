@@ -1,5 +1,10 @@
 const util = require("util");
-const { gitHead, createBranch, branchName } = require("./git-commands");
+const {
+  gitHead,
+  createBranch,
+  branchName,
+  switchBranch,
+} = require("./git-commands");
 const readFile = util.promisify(require("fs").readFile);
 const writeFile = util.promisify(require("fs").writeFile);
 const stat = util.promisify(require("fs").stat);
@@ -245,6 +250,7 @@ const play = async () => {
       running = false;
     }
   } while (running);
+  await switchBranch(currentBranch);
   stdin.pause();
 };
 
