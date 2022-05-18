@@ -9,7 +9,7 @@ const {
   updateSlide,
   previousSlide,
   firstSlide,
-  play,
+  present,
 } = require("./slide-deck");
 const { currentCommit } = require("./git-commands");
 
@@ -97,11 +97,11 @@ program
   });
 
 program
-  .command("play")
+  .command("present")
   .description("plays entire deck as client, starting from the first slide")
   .action(async function () {
     try {
-      await play();
+      await present();
     } catch (e) {
       handleError(e);
     }
