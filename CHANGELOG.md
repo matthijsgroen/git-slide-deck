@@ -12,12 +12,12 @@ and this project adheres to
 
 - Slide deck creation commands:
 
-  - init a slide-deck `git-slide init`
-  - add a slide to the deck `git-slide add`
-  - update current slide of the deck `git-slide update`
+  - init a slide-deck `git-slide-deck init`
+  - add a slide to the deck `git-slide-deck add`
+  - update current slide of the deck `git-slide-deck update`
 
 - Slide deck navigation commands:
 
-  - go to first slide `git-slide first`
-  - go to next slide `git-slide next`
-  - go to previous slide `git-slide previous`
+  - go to first slide `git-slide-deck first`
+  - go to next slide `git-slide-deck next`
+  - go to previous slide `git-slide-deck previous`

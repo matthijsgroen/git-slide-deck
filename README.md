@@ -9,7 +9,7 @@ npm install -g git-slide-deck
 ## Usage from command line
 
 ```
-Usage: git-slide [options] [command]
+Usage: git-slide-deck [options] [command]
 
 Turns your codebase in a slide-deck. Ideal for workshops or partly live coding sessions
 
