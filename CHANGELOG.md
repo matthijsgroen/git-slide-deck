@@ -22,4 +22,4 @@ and this project adheres to
   - go to next slide `git-slide-deck next`
   - go to previous slide `git-slide-deck previous`
 
-- Slide deck play: `git-slide-deck play`
+- Slide deck presentation: `git-slide-deck present`

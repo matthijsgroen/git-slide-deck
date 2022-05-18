@@ -93,10 +93,7 @@ const parseDeck = async () => {
 /**
  * @param {Slide} slide
  */
-const openSlide = async (slide) => {
-  await stash();
-  await createBranch(`slide-${slide.name}`, slide.commit);
-};
+const openSlide = (slide) => createBranch(`slide-${slide.name}`, slide.commit);
 
 /**
  * @param {string} name
@@ -181,7 +178,7 @@ const stdin = process.stdin;
 
 const cls = () => process.stdout.write("\x1Bc");
 
-const play = async () => {
+const present = async () => {
   const [slideDeck, currentBranch] = await Promise.all([
     parseDeck(),
     branchName(),
@@ -226,6 +223,7 @@ const play = async () => {
       raiseError(statusCodes.END_OF_PRESENTATION);
     }
 
+    await stash();
     await openSlide(slide);
 
     const hasNext = index < slideDeck.slides.length - 1;
@@ -267,5 +265,5 @@ module.exports = {
   previousSlide,
   updateSlide,
   firstSlide,
-  play,
+  present,
 };
