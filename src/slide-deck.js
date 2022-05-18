@@ -6,6 +6,7 @@ const {
   stash,
   titleOfCommit,
   isGitRepo,
+  currentCommit,
 } = require("./git-commands");
 const readFile = util.promisify(require("fs").readFile);
 const writeFile = util.promisify(require("fs").writeFile);
@@ -14,7 +15,7 @@ const stat = util.promisify(require("fs").stat);
 /**
  * @typedef {{ name: string; commit: string; }} Slide
  * @typedef {{ version: string; slides: Slide[]; }} Deck
- * @typedef {{ key: string; execute: () => Promise<void>; enabled: boolean; actionLine: string; }} Action
+ * @typedef {{ key: string; execute: () => void | Promise<void>; enabled: boolean; actionLine: () => string; }} Action
  */
 
 const statusCodes = {
@@ -43,18 +44,18 @@ const DEFAULT_DECK_PATH = ".slide-deck.json";
 const raiseError = (code) => {
   const entry = Object.entries(statusCodes).find(([, v]) => v === code);
 
+  /** @type {Error & { errorCode?: number; }} */
   const error = new Error(entry[0]);
   error.errorCode = code;
   throw error;
 };
 
 const hasDeckFile = async () => {
-  let exists = false;
   try {
     await stat(DEFAULT_DECK_PATH);
-    exists = true;
+    return true;
   } catch (e) {}
-  return exists;
+  return false;
 };
 
 const initRepo = async () => {
@@ -88,7 +89,7 @@ const writeDeck = async (deck) => {
  */
 const parseDeck = async () => {
   try {
-    const contents = await readFile(DEFAULT_DECK_PATH);
+    const contents = await readFile(DEFAULT_DECK_PATH, "utf-8");
     return JSON.parse(contents);
   } catch (e) {
     raiseError(statusCodes.CANT_READ_SLIDE_DECK);
@@ -230,19 +231,23 @@ const client = async (presentMode = true) => {
   stdin.setRawMode(true);
   stdin.setEncoding("utf8");
 
-  /** @type {null | (key: string) => void} */
+  /** @type {null | ((key: string) => void)} */
   let waitKey = null;
 
-  stdin.on("data", function (key) {
-    // ctrl-c ( end of text )
-    if (key === "\u0003" || key === "\u001b") {
-      process.exit();
+  stdin.on(
+    "data",
+    /** @param {string} key */
+    function (key) {
+      // ctrl-c ( end of text )
+      if (key === "\u0003" || key === "\u001b") {
+        process.exit();
+      }
+      if (waitKey) {
+        waitKey(key);
+        waitKey = null;
+      }
     }
-    if (waitKey) {
-      waitKey(key);
-      waitKey = null;
-    }
-  });
+  );
 
   /**
    *
@@ -290,7 +295,7 @@ const client = async (presentMode = true) => {
     const actions = [
       {
         key: "p",
-        actionLine: `previous: ${slideDeck.slides[index - 1].name}`,
+        actionLine: () => `previous: ${slideDeck.slides[index - 1].name}`,
         execute: () => {
           index--;
         },
@@ -298,7 +303,7 @@ const client = async (presentMode = true) => {
       },
       {
         key: "n",
-        actionLine: `next: ${slideDeck.slides[index + 1].name}`,
+        actionLine: () => `next: ${slideDeck.slides[index + 1].name}`,
         execute: () => {
           index++;
         },
@@ -306,7 +311,7 @@ const client = async (presentMode = true) => {
       },
       {
         key: "u",
-        actionLine: "update current slide",
+        actionLine: () => "update current slide",
         execute: async () => {
           const commit = await currentCommit();
           const title = await titleOfCommit(commit);
@@ -317,11 +322,11 @@ const client = async (presentMode = true) => {
             message = `Slide is already this commit. -- '${title}'`;
           }
         },
-        enabled: !presentMode && slide,
+        enabled: !presentMode && !!slide,
       },
       {
         key: "a",
-        actionLine: "add slide after this one",
+        actionLine: () => "add slide after this one",
         execute: async () => {
           const commit = await currentCommit();
           const title = await titleOfCommit(commit);
@@ -341,7 +346,7 @@ const client = async (presentMode = true) => {
       },
       {
         key: "s",
-        actionLine: "save & quit",
+        actionLine: () => "save & quit",
         execute: async () => {
           await stash();
           await switchBranch(startBranch);
@@ -353,7 +358,7 @@ const client = async (presentMode = true) => {
       },
       {
         key: "q",
-        actionLine: "quit",
+        actionLine: () => "quit",
         execute: async () => {
           running = false;
         },
@@ -364,7 +369,7 @@ const client = async (presentMode = true) => {
     const enabledKeys = [];
     for (const action of actions) {
       if (action.enabled) {
-        console.log(`${action.key}) ${action.actionLine}`);
+        console.log(`${action.key}) ${action.actionLine()}`);
         enabledKeys.push(action.key);
       }
     }
