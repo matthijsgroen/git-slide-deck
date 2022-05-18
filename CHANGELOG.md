@@ -21,3 +21,5 @@ and this project adheres to
   - go to first slide `git-slide-deck first`
   - go to next slide `git-slide-deck next`
   - go to previous slide `git-slide-deck previous`
+
+- Slide deck play: `git-slide-deck play`

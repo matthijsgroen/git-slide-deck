@@ -13,9 +13,13 @@ const branchName = async () => {
   return status.stdout.trim();
 };
 
+const switchBranch = async (name) => {
+  await exec(`git switch ${name}`);
+};
+
 const createBranch = async (name, commit) => {
   await exec(`git branch -f ${name} ${commit}`);
-  await exec(`git switch ${name}`);
+  await switchBranch(name);
 };
 
 module.exports = {
@@ -23,4 +27,5 @@ module.exports = {
   currentCommit,
   createBranch,
   branchName,
+  switchBranch,
 };

@@ -168,6 +168,57 @@ const updateSlide = async (commit) => {
   await writeDeck(slideDeck);
 };
 
+const stdin = process.stdin;
+
+const inputKey = () =>
+  new Promise(async (resolve) => {
+    stdin.setRawMode(false);
+    stdin.setEncoding("utf8");
+    const callback = function (chunk) {
+      resolve(chunk.slice(0, -1));
+
+      stdin.setRawMode(true);
+      stdin.setEncoding("utf8");
+      stdin.removeListener("data", callback);
+    };
+
+    stdin.on("data", callback);
+  });
+
+const VALID_KEYS = ["n", "p", "q"];
+
+/**
+ * @param {string[]} keys
+ */
+const validInputKey = async (keys) => {
+  let key = "";
+  do {
+    key = await inputKey();
+  } while (!keys.includes(key));
+  return key;
+};
+
+const play = async () => {
+  const [slideDeck, currentBranch] = await Promise.all([
+    parseDeck(),
+    branchName(),
+  ]);
+  let index = 0;
+  let running = true;
+  do {
+    const slide = slideDeck.slides[index];
+    if (!slide) {
+      raiseError(statusCodes.END_OF_PRESENTATION);
+    }
+    // await openSlide(slide);
+
+    const key = await validInputKey(VALID_KEYS);
+
+    console.log(key);
+    running = false;
+  } while (running);
+};
+
 module.exports = {
   initRepo,
   statusCodes,
@@ -176,4 +227,5 @@ module.exports = {
   previousSlide,
   updateSlide,
   firstSlide,
+  play,
 };

@@ -95,6 +95,17 @@ program
     }
   });
 
+program
+  .command("play")
+  .description("plays entire deck as client, starting from the first slide")
+  .action(async function () {
+    try {
+      await play();
+    } catch (e) {
+      handleError(e);
+    }
+  });
+
 async function run(args) {
   program.parse(args);
   if (program.args.length === 0) {
