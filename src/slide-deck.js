@@ -12,6 +12,9 @@ const readFile = util.promisify(require("fs").readFile);
 const writeFile = util.promisify(require("fs").writeFile);
 const stat = util.promisify(require("fs").stat);
 
+/** @param {number} time */
+const delay = (time) => new Promise((resolve) => setTimeout(resolve, time));
+
 /**
  * @typedef {{ name: string; commit: string; }} Slide
  * @typedef {{ version: string; slides: Slide[]; }} Deck
@@ -323,7 +326,7 @@ const client = async (presentMode = true) => {
           const title = await titleOfCommit(commit);
           if (slideDeck.slides[index].commit !== commit) {
             slideDeck.slides[index].commit = commit;
-            message = `Slide updated. -- '${title}'`;
+            message = `Slide updated. -- '${title}' - ${commit}`;
           } else {
             message = `Slide is already this commit. -- '${title}'`;
           }
@@ -358,7 +361,9 @@ const client = async (presentMode = true) => {
           await switchBranch(startBranch);
           await writeDeck(slideDeck);
           console.log("Slide deck saved.");
-          running = false;
+          stdin.pause();
+          // Skip stash process of normal loop
+          process.exit(0);
         },
         enabled: !presentMode,
       },
