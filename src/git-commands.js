@@ -36,7 +36,7 @@ const stash = async () => {
  */
 const titleOfCommit = async (commit) => {
   const status = await exec(
-    `git lig --pretty=format:%s ${commit}^1...${commit}`
+    `git log --pretty=format:%s ${commit}^1...${commit}`
   );
   return status.stdout.trim();
 };
