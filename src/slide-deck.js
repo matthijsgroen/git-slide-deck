@@ -249,7 +249,6 @@ const client = async (presentMode = true) => {
       }
       if (waitKey) {
         waitKey(key);
-        waitKey = null;
       }
     }
   );
@@ -264,6 +263,8 @@ const client = async (presentMode = true) => {
       const keyHandler = (key) => {
         if (keys.includes(key)) {
           resolve(key);
+          waitKey = null;
+          return;
         }
         waitKey = keyHandler;
       };
