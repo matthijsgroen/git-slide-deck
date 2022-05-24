@@ -114,7 +114,12 @@ const createOrParseDeck = async () => {
 /**
  * @param {Slide} slide
  */
-const openSlide = (slide) => createBranch(`slide-${slide.name}`, slide.commit);
+const openSlide = async (slide) => {
+  const commit = await currentCommit();
+  if (commit !== slide.commit) {
+    await createBranch(`slide-${slide.name}`, slide.commit);
+  }
+};
 
 /**
  * @param {string} name
