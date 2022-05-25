@@ -1,5 +1,15 @@
 # Git slide deck
 
+Git Slide deck can turn your codebase into a slide-deck.
+Ideal for small projects that are the topic of a workshop / live coding session.
+You can create slides by creating commits, and then present them by stepping through the commits.
+You'll use your favorite Editor as Presenting tool, and use this terminal app for slide navigation.
+
+Used for: https://github.com/matthijsgroen/build-react-redux
+
+The tool produces a `.slide-deck.json` which contains an array of your slides with name and commit hash.
+you can edit this file to update your slide names or reorder them.
+
 ## Installation
 
 ```
