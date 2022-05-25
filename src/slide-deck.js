@@ -120,7 +120,8 @@ const createOrParseDeck = async () => {
 const openSlide = async (slide) => {
   const commit = await currentCommit();
   if (commit !== slide.commit) {
-    await createBranch(`slide-${slide.name}`, slide.commit);
+    const branchName = slide.name.replace(/\s+/g, "-");
+    await createBranch(`slide-${branchName}`, slide.commit);
   }
 };
 
